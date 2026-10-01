@@ -1,0 +1,8 @@
+names:
+- normal
+- shoplifting
+nc: 2
+path: D:/college/mini project/dataset/Shoplifting.v1i.yolov8
+test: test/images
+train: train/images
+val: valid/images

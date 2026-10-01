@@ -1,0 +1,142 @@
+{% extends "base.html" %}
+
+{% block title %}System Settings — Configuration{% endblock %}
+{% block page_title %}System Settings & AI Parameters{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">System Calibration & Preferences</h3>
+        <p class="section-subtitle">Adjust neural detection sensitivity, notification sound triggers, appearance themes, and retention policies</p>
+    </div>
+</div>
+
+<div style="max-width: 800px;">
+    <!-- 1. Detection & AI Calibration -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                Detection & AI Calibration
+            </span>
+        </div>
+        <div class="card-panel-body">
+            <div class="form-group">
+                <label class="form-label">Detection Sensitivity Level</label>
+                <div style="display: flex; gap: 10px;">
+                    <label class="btn {% if settings.detection_sensitivity == 'low' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" style="cursor: pointer;">
+                        <input type="radio" name="detection_sensitivity" value="low" {% if settings.detection_sensitivity == 'low' %}checked{% endif %} style="display: none;" onchange="saveSetting('detection_sensitivity', 'low')">
+                        Low (Threshold 0.70 — Fewer alerts)
+                    </label>
+                    <label class="btn {% if settings.detection_sensitivity == 'medium' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" style="cursor: pointer;">
+                        <input type="radio" name="detection_sensitivity" value="medium" {% if settings.detection_sensitivity == 'medium' %}checked{% endif %} style="display: none;" onchange="saveSetting('detection_sensitivity', 'medium')">
+                        Medium (Threshold 0.55 — Recommended)
+                    </label>
+                    <label class="btn {% if settings.detection_sensitivity == 'high' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" style="cursor: pointer;">
+                        <input type="radio" name="detection_sensitivity" value="high" {% if settings.detection_sensitivity == 'high' %}checked{% endif %} style="display: none;" onchange="saveSetting('detection_sensitivity', 'high')">
+                        High (Threshold 0.40 — Maximum Vigilance)
+                    </label>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label class="form-label">Default Camera Feed</label>
+                <select id="default_camera" class="form-select" onchange="saveSetting('default_camera', this.value)">
+                    <option value="0" {% if settings.default_camera == '0' %}selected{% endif %}>CAM-01: Main Store Aisle</option>
+                    <option value="1" {% if settings.default_camera == '1' %}selected{% endif %}>CAM-02: Luxury Counter</option>
+                    <option value="virtual" {% if settings.default_camera == 'virtual' %}selected{% endif %}>Virtual Surveillance Stream</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. Notifications & Sounds -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+                Notifications & Audio Dispatch
+            </span>
+        </div>
+        <div class="card-panel-body">
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--border-dashed);">
+                <div>
+                    <strong style="font-size: 13px;">Audible Alarm Sound (Chime / Siren)</strong>
+                    <div style="font-size: 11px; color: var(--text-muted);">Emits synthesizer warning chime on high or critical threat detection</div>
+                </div>
+                <input type="checkbox" id="alert_sound" style="accent-color: var(--accent-cyan); width: 18px; height: 18px;" {% if settings.alert_sound == 'true' %}checked{% endif %} onchange="saveSetting('alert_sound', this.checked ? 'true' : 'false')">
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 0;">
+                <div>
+                    <strong style="font-size: 13px;">Browser Push Notifications</strong>
+                    <div style="font-size: 11px; color: var(--text-muted);">Displays instant popups when high priority anomalies occur</div>
+                </div>
+                <input type="checkbox" id="desktop_notifications" style="accent-color: var(--accent-cyan); width: 18px; height: 18px;" {% if settings.desktop_notifications == 'true' %}checked{% endif %} onchange="saveSetting('desktop_notifications', this.checked ? 'true' : 'false')">
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. Appearance & Data Storage Retention -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><line x1="3" y1="9" x2="21" y2="9"></line><line x1="9" y1="21" x2="9" y2="9"></line></svg>
+                Appearance & Data Storage Retention
+            </span>
+        </div>
+        <div class="card-panel-body">
+            <div class="form-group">
+                <label class="form-label">Blueprint Theme Scheme</label>
+                <div style="display: flex; gap: 10px;">
+                    <button type="button" class="btn {% if settings.theme == 'light' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" onclick="setThemeDirect('light')">
+                        Drafting Paper (Light)
+                    </button>
+                    <button type="button" class="btn {% if settings.theme == 'dark' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm" onclick="setThemeDirect('dark')">
+                        Cyanotype (Dark Blueprint)
+                    </button>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-top: 20px;">
+                <label class="form-label">Evidence Storage Retention Period</label>
+                <select id="storage_retention_days" class="form-select" onchange="saveSetting('storage_retention_days', this.value)">
+                    <option value="30" {% if settings.storage_retention_days == '30' %}selected{% endif %}>30 Days (Standard Audit)</option>
+                    <option value="60" {% if settings.storage_retention_days == '60' %}selected{% endif %}>60 Days (Extended)</option>
+                    <option value="90" {% if settings.storage_retention_days == '90' %}selected{% endif %}>90 Days (Quarterly Compliance)</option>
+                    <option value="180" {% if settings.storage_retention_days == '180' %}selected{% endif %}>180 Days (Half-Yearly Archive)</option>
+                </select>
+                <p style="font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                    Image frames and logs older than the designated threshold are scheduled for automated cryptographic zeroing.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function saveSetting(key, val) {
+    try {
+        const payload = {};
+        payload[key] = val;
+        await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+    } catch (e) {
+        alert('Failed to update setting.');
+    }
+}
+
+function setThemeDirect(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    localStorage.setItem('fraudguard_theme', theme);
+    saveSetting('theme', theme).then(() => {
+        window.location.reload();
+    });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,19 @@
+# Local secrets and runtime state
+.env
+fraud_guard_ai/.env
+fraud_guard_ai/fraud_guard.db
+fraud_guard_ai/data/uploads/*
+fraud_guard_ai/data/evidence/*
+fraud_guard_ai/data/reports/*
+fraud_guard_ai/static/evidence/*
+
+# Python environments and generated files
+.venv/
+**/__pycache__/
+*.py[cod]
+
+# Editor and OS files
+.vscode/
+.idea/
+Thumbs.db
+Desktop.ini

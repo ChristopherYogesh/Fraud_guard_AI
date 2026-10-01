@@ -1,0 +1,13 @@
+train: ../train/images
+val: ../valid/images
+test: ../test/images
+
+nc: 2
+names: ['normal', 'shoplifting']
+
+roboflow:
+  workspace: university-x02zg
+  project: shoplifting-0qhha
+  version: 1
+  license: CC BY 4.0
+  url: https://universe.roboflow.com/university-x02zg/shoplifting-0qhha/dataset/1

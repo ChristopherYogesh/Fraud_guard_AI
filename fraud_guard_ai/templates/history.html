@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Detection History — Incident Archive{% endblock %}
+{% block page_title %}Detection History & Incident Log{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Verified Incidents & Telemetry Log</h3>
+        <p class="section-subtitle">Searchable, auditable registry of all AI-detected theft and anomalous behaviors</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <a href="{{ url_for('history.export_csv') }}" class="btn btn-secondary btn-sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <span>Export CSV</span>
+        </a>
+        <a href="{{ url_for('reports.index') }}" class="btn btn-primary btn-sm">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <span>Generate Report</span>
+        </a>
+    </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card-panel" style="margin-bottom: 20px;">
+    <div class="card-panel-body" style="padding: 14px 20px;">
+        <form method="GET" action="{{ url_for('history.index') }}" style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end;">
+            <div style="flex: 1; min-width: 200px;">
+                <label class="form-label" for="search">Keyword Search</label>
+                <input type="text" id="search" name="search" class="form-input" placeholder="Search camera, object class, or notes..." value="{{ search }}">
+            </div>
+
+            <div style="width: 150px;">
+                <label class="form-label" for="risk">Risk Severity</label>
+                <select id="risk" name="risk" class="form-select">
+                    <option value="ALL">All Risk Levels</option>
+                    <option value="CRITICAL" {% if risk_filter == 'CRITICAL' %}selected{% endif %}>Critical Risk</option>
+                    <option value="HIGH" {% if risk_filter == 'HIGH' %}selected{% endif %}>High Risk</option>
+                    <option value="MEDIUM" {% if risk_filter == 'MEDIUM' %}selected{% endif %}>Medium Risk</option>
+                    <option value="LOW" {% if risk_filter == 'LOW' %}selected{% endif %}>Low Risk</option>
+                </select>
+            </div>
+
+            <div style="width: 150px;">
+                <label class="form-label" for="status">Investigation Status</label>
+                <select id="status" name="status" class="form-select">
+                    <option value="ALL">All Statuses</option>
+                    <option value="Investigating" {% if status_filter == 'Investigating' %}selected{% endif %}>Investigating</option>
+                    <option value="Confirmed" {% if status_filter == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                    <option value="Dismissed" {% if status_filter == 'Dismissed' %}selected{% endif %}>Dismissed</option>
+                    <option value="Resolved" {% if status_filter == 'Resolved' %}selected{% endif %}>Resolved</option>
+                </select>
+            </div>
+
+            <div style="width: 150px;">
+                <label class="form-label" for="date">Date</label>
+                <input type="date" id="date" name="date" class="form-input" value="{{ date_filter }}">
+            </div>
+
+            <button type="submit" class="btn btn-secondary" style="height: 38px;">Filter</button>
+            <a href="{{ url_for('history.index') }}" class="btn btn-secondary" style="height: 38px; color: var(--text-muted);">Reset</a>
+        </form>
+    </div>
+</div>
+
+<!-- Incident Table -->
+<div class="card-panel">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width: 70px;">Evidence</th>
+                    <th>Date & Time</th>
+                    <th>Camera Zone</th>
+                    <th>Detected Behavior</th>
+                    <th>Confidence</th>
+                    <th>Risk Band</th>
+                    <th>Status</th>
+                    <th style="text-align: right;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inc in incidents %}
+                <tr>
+                    <td>
+                        <div style="width: 54px; height: 38px; border-radius: var(--radius-sm); overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border-color); cursor: pointer;" onclick="openIncidentModal({{ inc.id }})">
+                            {% if inc.image_path %}
+                            <img src="{{ url_for('static', filename=inc.image_path) }}" style="width: 100%; height: 100%; object-fit: cover;">
+                            {% else %}
+                            <span style="font-size: 9px; color: #94a3b8; font-family: var(--font-mono);">FRAME</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 11px;">
+                        <div>{{ inc.timestamp.strftime('%Y-%m-%d') }}</div>
+                        <div style="color: var(--text-dim);">{{ inc.timestamp.strftime('%H:%M:%S') }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ inc.camera }}</strong>
+                        <div style="font-size: 11px; color: var(--text-dim);">{{ inc.source }}</div>
+                    </td>
+                    <td>
+                        <strong>{{ inc.object_class.title() }}</strong>
+                    </td>
+                    <td style="font-family: var(--font-mono);">{{ (inc.confidence * 100)|int }}%</td>
+                    <td>
+                        <span class="badge-risk {{ inc.risk_level.lower() }}">
+                            {{ inc.risk_level }}
+                        </span>
+                    </td>
+                    <td>
+                        <select class="form-select" style="padding: 3px 6px; font-size: 11px; width: auto;" onchange="updateStatus({{ inc.id }}, this.value)">
+                            <option value="Investigating" {% if inc.status == 'Investigating' %}selected{% endif %}>Investigating</option>
+                            <option value="Confirmed" {% if inc.status == 'Confirmed' %}selected{% endif %}>Confirmed</option>
+                            <option value="Dismissed" {% if inc.status == 'Dismissed' %}selected{% endif %}>Dismissed</option>
+                            <option value="Resolved" {% if inc.status == 'Resolved' %}selected{% endif %}>Resolved</option>
+                        </select>
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="openIncidentModal({{ inc.id }})">Inspect</button>
+                        <button class="btn btn-danger btn-sm" onclick="deleteIncident({{ inc.id }})">Delete</button>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                        No incidents match the given filter criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if pagination.pages > 1 %}
+    <div style="padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--border-color); font-size: 12px; color: var(--text-muted);">
+        <div>Page {{ pagination.page }} of {{ pagination.pages }} ({{ pagination.total }} incidents recorded)</div>
+        <div style="display: flex; gap: 6px;">
+            {% if pagination.has_prev %}
+            <a href="{{ url_for('history.index', page=pagination.prev_num, search=search, risk=risk_filter, status=status_filter, date=date_filter) }}" class="btn btn-secondary btn-sm">&larr; Prev</a>
+            {% endif %}
+            {% if pagination.has_next %}
+            <a href="{{ url_for('history.index', page=pagination.next_num, search=search, risk=risk_filter, status=status_filter, date=date_filter) }}" class="btn btn-secondary btn-sm">Next &rarr;</a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Incident Detail Modal -->
+<div id="incidentModal" class="modal-backdrop">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h4 id="mTitle" style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">Incident Inspection</h4>
+            <button class="btn-icon" onclick="closeModal('incidentModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div id="mImgBox" style="width: 100%; max-height: 320px; background: #000; border-radius: var(--radius-sm); overflow: hidden; margin-bottom: 16px; display: flex; align-items: center; justify-content: center;">
+                <img id="mImg" src="" style="width: 100%; height: 100%; object-fit: contain;">
+            </div>
+
+            <div class="telemetry-row"><span>INCIDENT ID</span><span id="mId"></span></div>
+            <div class="telemetry-row"><span>TIMESTAMP</span><span id="mTime"></span></div>
+            <div class="telemetry-row"><span>CAMERA ZONE</span><span id="mCamera"></span></div>
+            <div class="telemetry-row"><span>CLASSIFICATION</span><span id="mClass"></span></div>
+            <div class="telemetry-row"><span>CONFIDENCE</span><span id="mConf"></span></div>
+            <div class="telemetry-row"><span>RISK LEVEL</span><span id="mRisk"></span></div>
+            <div class="telemetry-row"><span>CURRENT STATUS</span><span id="mStatus"></span></div>
+
+            <div style="margin-top: 16px; padding: 12px; background: var(--bg-surface-alt); border-radius: var(--radius-sm); font-size: 12px;">
+                <div style="font-family: var(--font-mono); font-weight: 700; color: var(--text-muted); font-size: 10px; text-transform: uppercase;">DETECTION REASONING</div>
+                <div id="mReasons" style="margin-top: 4px; line-height: 1.4;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function openIncidentModal(id) {
+    try {
+        const res = await fetch(`/api/history/${id}`);
+        const inc = await res.json();
+        
+        document.getElementById('mTitle').textContent = `Incident #${inc.id} Details`;
+        document.getElementById('mId').textContent = `#${inc.id}`;
+        document.getElementById('mTime').textContent = inc.timestamp;
+        document.getElementById('mCamera').textContent = inc.camera;
+        document.getElementById('mClass').textContent = inc.object_class.toUpperCase();
+        document.getElementById('mConf').textContent = inc.confidence_pct;
+        document.getElementById('mRisk').textContent = inc.risk_level;
+        document.getElementById('mStatus').textContent = inc.status;
+
+        const imgEl = document.getElementById('mImg');
+        if (inc.image_path) {
+            imgEl.src = `/static/${inc.image_path}`;
+            imgEl.style.display = 'block';
+        } else {
+            imgEl.style.display = 'none';
+        }
+
+        const reasons = inc.details && inc.details.reasons ? inc.details.reasons.join('; ') : 'No notes available';
+        document.getElementById('mReasons').textContent = reasons;
+
+        openModal('incidentModal');
+    } catch (e) {
+        alert('Could not load incident details.');
+    }
+}
+
+async function updateStatus(id, newStatus) {
+    try {
+        await fetch(`/api/history/${id}/status`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status: newStatus })
+        });
+    } catch (e) {
+        alert('Failed to update status.');
+    }
+}
+
+async function deleteIncident(id) {
+    if (!confirm(`Are you sure you want to delete incident record #${id}?`)) return;
+    try {
+        const res = await fetch(`/api/history/${id}`, { method: 'DELETE' });
+        if (res.ok) {
+            window.location.reload();
+        }
+    } catch (e) {
+        alert('Failed to delete incident.');
+    }
+}
+</script>
+{% endblock %}

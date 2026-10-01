@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Alerts Feed — Security Notifications{% endblock %}
+{% block page_title %}Real-time Security Alerts Feed{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Prioritised Threat Dispatch & Alerts</h3>
+        <p class="section-subtitle">Real-time alerts triggered by YOLOv8 and CNN activity classification engine</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <button class="btn btn-secondary btn-sm" onclick="clearAllAlerts()">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>Acknowledge All</span>
+        </button>
+    </div>
+</div>
+
+<!-- Summary Cards -->
+<div class="metrics-grid">
+    <div class="metric-card card-cyan">
+        <div class="metric-header"><span class="metric-label">Total Generated Alerts</span></div>
+        <div class="metric-value">{{ total_count }}</div>
+        <div class="metric-footnote">System lifetime count</div>
+    </div>
+    <div class="metric-card card-crimson">
+        <div class="metric-header"><span class="metric-label">Critical Alerts</span></div>
+        <div class="metric-value" style="color: var(--accent-crimson);">{{ critical_count }}</div>
+        <div class="metric-footnote">Immediate attention required</div>
+    </div>
+    <div class="metric-card card-amber">
+        <div class="metric-header"><span class="metric-label">High Priority</span></div>
+        <div class="metric-value" style="color: var(--accent-amber);">{{ high_count }}</div>
+        <div class="metric-footnote">Suspicious behavioral indicators</div>
+    </div>
+    <div class="metric-card card-emerald">
+        <div class="metric-header"><span class="metric-label">Unacknowledged</span></div>
+        <div class="metric-value" style="color: {% if unack_count > 0 %}var(--accent-crimson){% else %}var(--accent-emerald){% endif %};">
+            {{ unack_count }}
+        </div>
+        <div class="metric-footnote">Pending security review</div>
+    </div>
+</div>
+
+<!-- Filter Chips -->
+<div style="display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap;">
+    <a href="{{ url_for('alerts.index') }}" class="btn {% if not priority_filter or priority_filter == 'ALL' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">All Severities</a>
+    <a href="{{ url_for('alerts.index', priority='CRITICAL') }}" class="btn {% if priority_filter == 'CRITICAL' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">Critical Only</a>
+    <a href="{{ url_for('alerts.index', priority='HIGH') }}" class="btn {% if priority_filter == 'HIGH' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">High Only</a>
+    <a href="{{ url_for('alerts.index', priority='MEDIUM') }}" class="btn {% if priority_filter == 'MEDIUM' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">Medium Only</a>
+    <a href="{{ url_for('alerts.index', priority='LOW') }}" class="btn {% if priority_filter == 'LOW' %}btn-primary{% else %}btn-secondary{% endif %} btn-sm">Low Only</a>
+</div>
+
+<!-- Alerts Feed List -->
+<div class="card-panel">
+    <div class="card-panel-header">
+        <span class="card-panel-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+            Security Events Stream
+        </span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Auto-refreshed stream</span>
+    </div>
+
+    <div class="card-panel-body" style="padding: 0;">
+        {% for a in alerts %}
+        <div style="display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid var(--border-color); background-color: {% if not a.acknowledged %}var(--bg-surface-alt){% else %}transparent{% endif %};">
+            <div style="display: flex; align-items: flex-start; gap: 14px;">
+                <span class="badge-risk {{ a.priority.lower() }}" style="margin-top: 2px;">
+                    {{ a.priority }}
+                </span>
+                <div>
+                    <div style="font-size: 13px; font-weight: 600; color: var(--text-primary);">{{ a.message }}</div>
+                    <div style="display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); margin-top: 4px; font-family: var(--font-mono);">
+                        <span>{{ a.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                        <span>&bull;</span>
+                        <span>{{ a.get_time_ago() }}</span>
+                        {% if a.detection_id %}
+                        <span>&bull;</span>
+                        <a href="{{ url_for('history.index', search='#' ~ a.detection_id) }}" style="color: var(--accent-cyan); text-decoration: none;">Incident #{{ a.detection_id }}</a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                {% if not a.acknowledged %}
+                <button class="btn btn-secondary btn-sm" onclick="ackAlert({{ a.id }}, this)">
+                    <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    <span>Acknowledge</span>
+                </button>
+                {% else %}
+                <span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-emerald);">ACKNOWLEDGED</span>
+                {% endif %}
+            </div>
+        </div>
+        {% else %}
+        <div style="text-align: center; padding: 40px; color: var(--text-muted);">
+            No alerts match the selected priority filter.
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function ackAlert(id, btn) {
+    try {
+        const res = await fetch(`/api/alerts/acknowledge/${id}`, { method: 'POST' });
+        if (res.ok) {
+            btn.parentElement.innerHTML = '<span style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-emerald);">ACKNOWLEDGED</span>';
+        }
+    } catch (e) {
+        alert('Failed to acknowledge alert.');
+    }
+}
+
+async function clearAllAlerts() {
+    try {
+        const res = await fetch('/api/alerts/clear-all', { method: 'POST' });
+        if (res.ok) {
+            window.location.reload();
+        }
+    } catch (e) {
+        alert('Failed to clear alerts.');
+    }
+}
+</script>
+{% endblock %}

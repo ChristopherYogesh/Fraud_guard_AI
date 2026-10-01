@@ -1,0 +1,249 @@
+{% extends "base.html" %}
+
+{% block title %}Live Camera — AI Surveillance Feed{% endblock %}
+{% block page_title %}Live Camera Surveillance{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Optical AI Stream & Real-time Telemetry</h3>
+        <p class="section-subtitle">Dual YOLOv8 object localization and CNN activity inference pipeline</p>
+    </div>
+    <div style="display: flex; gap: 10px;">
+        <select id="cameraSelector" class="form-select" style="width: auto; font-family: var(--font-mono); font-size: 12px;">
+            <option value="0" selected>CAM-01: Main Store Aisle (Optical Feed)</option>
+            <option value="1">CAM-02: Luxury Counter (Optical Feed)</option>
+            <option value="virtual">SIM-FEED: Neural Dataset Surveillance Simulator</option>
+        </select>
+    </div>
+</div>
+
+<!-- Two-Column Layout: Video Stream + AI Engine Telemetry Sidebar -->
+<div style="display: grid; grid-template-columns: 1fr 340px; gap: 24px; align-items: start;">
+    <!-- Left: Live Video Monitor -->
+    <div class="card-panel" style="margin-bottom: 0;">
+        <div class="card-panel-header">
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span class="status-dot" style="background-color: var(--accent-crimson);"></span>
+                <span class="card-panel-title">LIVE SURVEILLANCE FEED</span>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+                <span id="liveFpsBadge" class="badge-status active" style="font-family: var(--font-mono);">-- FPS</span>
+                <span id="liveRiskBadge" class="badge-risk low">LOW RISK</span>
+            </div>
+        </div>
+
+        <div class="card-panel-body" style="padding: 16px;">
+            <div class="live-stream-box" id="videoBox">
+                <img id="liveFeedImg" src="{{ url_for('live.video_feed') }}" alt="Live Security Stream" onerror="this.src='/static/images/no_camera.png'">
+            </div>
+
+            <!-- Operator Action Controls Bar -->
+            <div style="margin-top: 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between;">
+                <div style="display: flex; gap: 8px;">
+                    <button id="btnToggleCam" class="btn btn-secondary btn-sm" onclick="toggleCamera()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect><line x1="7" y1="2" x2="7" y2="22"></line><line x1="17" y1="2" x2="17" y2="22"></line><line x1="2" y1="12" x2="22" y2="12"></line><line x1="2" y1="7" x2="7" y2="7"></line><line x1="2" y1="17" x2="7" y2="17"></line><line x1="17" y1="17" x2="22" y2="17"></line><line x1="17" y1="7" x2="22" y2="7"></line></svg>
+                        <span id="lblToggleCam">Stop Camera</span>
+                    </button>
+                    <button id="btnPauseDetection" class="btn btn-secondary btn-sm" onclick="togglePauseDetection()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg>
+                        <span id="lblPause">Pause Detection</span>
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="takeSnapshot()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                        <span>Snapshot</span>
+                    </button>
+                </div>
+
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" onclick="toggleFullscreen()">
+                        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
+                        <span>Fullscreen</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right: AI Engine Live Telemetry Side Panel -->
+    <div class="card-panel" style="margin-bottom: 0;">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--accent-cyan)"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg>
+                AI Engine Telemetry
+            </span>
+            <span class="badge-status active">ACTIVE</span>
+        </div>
+        <div class="card-panel-body">
+            <div class="telemetry-row">
+                <span>CLASSIFIED ACTIVITY</span>
+                <span id="telemetryActivity" style="font-weight: 700; color: var(--accent-emerald);">NORMAL</span>
+            </div>
+            <div class="telemetry-row">
+                <span>CONFIDENCE SCORE</span>
+                <span id="telemetryConfidence" style="font-size: 15px; font-weight: 700;">95%</span>
+            </div>
+            <div class="telemetry-row">
+                <span>THREAT ASSESSMENT</span>
+                <span id="telemetryRisk" class="badge-risk low">LOW RISK</span>
+            </div>
+            <div class="telemetry-row">
+                <span>DETECTION OBJECTS</span>
+                <span id="telemetryObjects" style="font-size: 11px;">person</span>
+            </div>
+            <div class="telemetry-row">
+                <span>STREAM FRAME ID</span>
+                <span id="telemetryFrameId">#000000</span>
+            </div>
+            <div class="telemetry-row">
+                <span>DETECTION LATENCY</span>
+                <span id="telemetryLatency">12.4 ms</span>
+            </div>
+            <div class="telemetry-row">
+                <span>DETECTOR ARCHITECTURE</span>
+                <span style="color: var(--accent-cyan);">YOLOv8n + CNN</span>
+            </div>
+            <div class="telemetry-row">
+                <span>HARDWARE ACCELERATION</span>
+                <span id="telemetryGpu">NVIDIA RTX 4050</span>
+            </div>
+
+            <!-- Contextual Intelligence Box -->
+            <div style="margin-top: 20px; padding: 14px; background-color: var(--bg-surface-alt); border-radius: var(--radius-sm); border: 1px dashed var(--border-dashed);">
+                <div style="font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                    BEHAVIORAL INFERENCE REASONING
+                </div>
+                <div id="telemetryReason" style="font-size: 12px; color: var(--text-primary); margin-top: 6px; line-height: 1.4;">
+                    Standard browsing behavior. No anomalous concealment or rapid evasion indicators observed.
+                </div>
+
+                <div style="margin-top: 10px; font-family: var(--font-mono); font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase;">
+                    DISPATCH PROTOCOL ACTION
+                </div>
+                <div id="telemetryAction" style="font-size: 12px; color: var(--text-secondary); margin-top: 4px; line-height: 1.4;">
+                    Routine surveillance active. No dispatch required.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Snapshot Toast -->
+<div id="snapshotToast" style="display: none; position: fixed; bottom: 20px; right: 20px; background: var(--bg-sidebar); color: white; padding: 14px 20px; border-radius: var(--radius-sm); z-index: 1000; box-shadow: var(--shadow-lg); font-size: 13px;">
+    Snapshot saved to incident evidence archive!
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let telemetryPoller = null;
+
+async function pollTelemetry() {
+    try {
+        const res = await fetch('/api/live/telemetry');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        document.getElementById('telemetryActivity').textContent = data.activity.toUpperCase();
+        document.getElementById('telemetryConfidence').textContent = data.confidence_pct;
+        document.getElementById('telemetryObjects').textContent = (data.objects_detected || []).join(', ') || 'none';
+        document.getElementById('telemetryFrameId').textContent = '#' + String(data.frame_id).padStart(6, '0');
+        document.getElementById('telemetryLatency').textContent = `${data.inference_time_ms} ms`;
+        document.getElementById('liveFpsBadge').textContent = `${data.fps} FPS`;
+
+        // Update Risk Badge
+        const riskEl = document.getElementById('telemetryRisk');
+        const liveRiskBadge = document.getElementById('liveRiskBadge');
+        const riskLevel = data.risk_level;
+        
+        riskEl.textContent = riskLevel + ' RISK';
+        riskEl.className = `badge-risk ${riskLevel.toLowerCase()}`;
+        liveRiskBadge.textContent = riskLevel + ' RISK';
+        liveRiskBadge.className = `badge-risk ${riskLevel.toLowerCase()}`;
+
+        // Update Activity Color
+        const actEl = document.getElementById('telemetryActivity');
+        if (data.activity === 'Theft') {
+            actEl.style.color = 'var(--accent-crimson)';
+        } else if (data.activity === 'Suspicious') {
+            actEl.style.color = 'var(--accent-amber)';
+        } else {
+            actEl.style.color = 'var(--accent-emerald)';
+        }
+
+        // Reasons & Action
+        if (data.reasons && data.reasons.length > 0) {
+            document.getElementById('telemetryReason').textContent = data.reasons.join('; ');
+        }
+        if (data.recommended_action) {
+            document.getElementById('telemetryAction').textContent = data.recommended_action;
+        }
+
+        if (data.gpu_name) {
+            document.getElementById('telemetryGpu').textContent = `${data.gpu_name} (${data.gpu_util}%)`;
+        }
+    } catch (e) {}
+}
+
+async function toggleCamera() {
+    const lbl = document.getElementById('lblToggleCam');
+    const isRunning = lbl.textContent.includes('Stop');
+    const action = isRunning ? 'stop' : 'start';
+    
+    await fetch('/api/live/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action })
+    });
+    
+    lbl.textContent = isRunning ? 'Start Camera' : 'Stop Camera';
+}
+
+async function togglePauseDetection() {
+    const lbl = document.getElementById('lblPause');
+    const res = await fetch('/api/live/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'toggle_pause' })
+    });
+    const data = await res.json();
+    lbl.textContent = data.active ? 'Pause Detection' : 'Resume Detection';
+}
+
+async function takeSnapshot() {
+    const res = await fetch('/api/live/control', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'snapshot' })
+    });
+    const data = await res.json();
+    if (data.status === 'success') {
+        const toast = document.getElementById('snapshotToast');
+        toast.style.display = 'block';
+        setTimeout(() => { toast.style.display = 'none'; }, 3000);
+    }
+}
+
+function toggleFullscreen() {
+    const box = document.getElementById('videoBox');
+    if (!document.fullscreenElement) {
+        box.requestFullscreen().catch(() => {});
+    } else {
+        document.exitFullscreen();
+    }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+    telemetryPoller = setInterval(pollTelemetry, 1000);
+    pollTelemetry();
+
+    document.getElementById('cameraSelector').addEventListener('change', (e) => {
+        fetch('/api/live/control', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'switch_camera', camera_index: e.target.value === 'virtual' ? 99 : e.target.value })
+        });
+    });
+});
+</script>
+{% endblock %}

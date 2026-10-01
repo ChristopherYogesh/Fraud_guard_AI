@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+
+{% block title %}Employee Access — User Management{% endblock %}
+{% block page_title %}Employee & Role Access Management{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Security Personnel & Access Control</h3>
+        <p class="section-subtitle">Manage operator accounts, assign administrative privileges, and review authentication status</p>
+    </div>
+    <div>
+        <button class="btn btn-primary" onclick="openModal('addEmployeeModal')">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+            <span>Add New Employee</span>
+        </button>
+    </div>
+</div>
+
+<div class="card-panel">
+    <div class="table-responsive">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Employee Name</th>
+                    <th>Username</th>
+                    <th>Email Address</th>
+                    <th>Role</th>
+                    <th>Status</th>
+                    <th>Last Active</th>
+                    <th style="text-align: right;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 10px;">
+                            <div class="user-avatar" style="width: 28px; height: 28px; font-size: 11px;">
+                                {{ u.username[:2].upper() }}
+                            </div>
+                            <strong style="color: var(--text-primary);">{{ u.full_name }}</strong>
+                        </div>
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 12px;">{{ u.username }}</td>
+                    <td>{{ u.email }}</td>
+                    <td>
+                        <select class="form-select" style="padding: 3px 6px; font-size: 11px; width: auto;" onchange="updateRole({{ u.id }}, this.value)" {% if u.id == current_user.id %}disabled{% endif %}>
+                            <option value="admin" {% if u.role == 'admin' %}selected{% endif %}>Administrator</option>
+                            <option value="guard" {% if u.role == 'guard' %}selected{% endif %}>Security Guard</option>
+                        </select>
+                    </td>
+                    <td>
+                        <button class="badge-status {% if u.status == 'active' %}active{% else %}resolved{% endif %}" style="border: none; cursor: pointer;" onclick="toggleStatus({{ u.id }})" {% if u.id == current_user.id %}disabled{% endif %}>
+                            {{ u.status.upper() }}
+                        </button>
+                    </td>
+                    <td style="font-family: var(--font-mono); font-size: 11px;">
+                        {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else 'Never' }}
+                    </td>
+                    <td style="text-align: right;">
+                        <button class="btn btn-secondary btn-sm" onclick="promptResetPassword({{ u.id }}, '{{ u.username }}')">Reset PW</button>
+                        {% if u.id != current_user.id %}
+                        <button class="btn btn-danger btn-sm" onclick="deleteUser({{ u.id }}, '{{ u.username }}')">Delete</button>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Add Employee Modal -->
+<div id="addEmployeeModal" class="modal-backdrop">
+    <div class="modal-card">
+        <div class="modal-header">
+            <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">Add New Personnel Account</h4>
+            <button class="btn-icon" onclick="closeModal('addEmployeeModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="addEmployeeForm" onsubmit="submitNewEmployee(event)">
+                <div class="form-group">
+                    <label class="form-label">Full Name</label>
+                    <input type="text" id="newFullName" class="form-input" placeholder="e.g. John Doe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Username</label>
+                    <input type="text" id="newUsername" class="form-input" placeholder="e.g. jdoe" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Work Email</label>
+                    <input type="email" id="newEmail" class="form-input" placeholder="e.g. jdoe@eyematrix.ai" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Assigned Role</label>
+                    <select id="newRole" class="form-select">
+                        <option value="guard" selected>Security Guard / Operator</option>
+                        <option value="admin">System Administrator</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Initial Password</label>
+                    <input type="password" id="newPassword" class="form-input" placeholder="Min. 6 characters" required>
+                </div>
+
+                <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 24px;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('addEmployeeModal')">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Create Personnel Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function submitNewEmployee(e) {
+    e.preventDefault();
+    const payload = {
+        full_name: document.getElementById('newFullName').value,
+        username: document.getElementById('newUsername').value,
+        email: document.getElementById('newEmail').value,
+        role: document.getElementById('newRole').value,
+        password: document.getElementById('newPassword').value
+    };
+
+    try {
+        const res = await fetch('/api/employees', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.status === 'success') {
+            window.location.reload();
+        } else {
+            alert(data.message || 'Failed to create user.');
+        }
+    } catch (err) {
+        alert('Network error while creating employee account.');
+    }
+}
+
+async function toggleStatus(id) {
+    try {
+        const res = await fetch(`/api/employees/${id}/toggle-status`, { method: 'POST' });
+        if (res.ok) window.location.reload();
+    } catch (e) {
+        alert('Failed to toggle status.');
+    }
+}
+
+async function updateRole(id, role) {
+    try {
+        const res = await fetch(`/api/employees/${id}/role`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ role: role })
+        });
+        if (res.ok) window.location.reload();
+    } catch (e) {
+        alert('Failed to update role.');
+    }
+}
+
+async function promptResetPassword(id, username) {
+    const newPass = prompt(`Enter new password for ${username} (min 6 chars):`);
+    if (!newPass) return;
+    try {
+        const res = await fetch(`/api/employees/${id}/reset-password`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ password: newPass })
+        });
+        const data = await res.json();
+        alert(data.message || 'Password reset successfully.');
+    } catch (e) {
+        alert('Failed to reset password.');
+    }
+}
+
+async function deleteUser(id, username) {
+    if (!confirm(`Are you sure you want to permanently delete account for ${username}?`)) return;
+    try {
+        const res = await fetch(`/api/employees/${id}`, { method: 'DELETE' });
+        if (res.ok) window.location.reload();
+    } catch (e) {
+        alert('Failed to delete account.');
+    }
+}
+</script>
+{% endblock %}

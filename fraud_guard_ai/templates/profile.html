@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Operator Profile — Account Management{% endblock %}
+{% block page_title %}Operator Profile & Security Keys{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Personal Credentials & Security</h3>
+        <p class="section-subtitle">Update display identification, registered email alerts, and access credentials</p>
+    </div>
+</div>
+
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; max-width: 900px;">
+    <!-- Personal Details Card -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                Operator Identification
+            </span>
+        </div>
+        <div class="card-panel-body">
+            <div style="display: flex; align-items: center; gap: 16px; margin-bottom: 24px;">
+                <div class="user-avatar" style="width: 54px; height: 54px; font-size: 20px;">
+                    {{ user.username[:2].upper() }}
+                </div>
+                <div>
+                    <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">{{ user.full_name }}</h4>
+                    <div style="font-family: var(--font-mono); font-size: 11px; color: var(--accent-cyan); text-transform: uppercase;">
+                        Role: {{ user.role }} ({{ user.status }})
+                    </div>
+                </div>
+            </div>
+
+            <form id="profileForm" onsubmit="updateProfile(event)">
+                <div class="form-group">
+                    <label class="form-label">Username (Immutable)</label>
+                    <input type="text" class="form-input" value="{{ user.username }}" disabled style="background-color: var(--bg-surface-alt); color: var(--text-muted);">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Full Display Name</label>
+                    <input type="text" id="profFullName" class="form-input" value="{{ user.full_name }}" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Email Address for Incident Dispatch</label>
+                    <input type="email" id="profEmail" class="form-input" value="{{ user.email }}" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 10px;">Save Changes</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change Password Card -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Modify Access Password
+            </span>
+        </div>
+        <div class="card-panel-body">
+            <form id="passwordForm" onsubmit="changePassword(event)">
+                <div class="form-group">
+                    <label class="form-label">Current Password</label>
+                    <input type="password" id="currPw" class="form-input" placeholder="••••••••••••" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">New Password</label>
+                    <input type="password" id="newPw" class="form-input" placeholder="Min. 6 characters" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Confirm New Password</label>
+                    <input type="password" id="confPw" class="form-input" placeholder="Repeat new password" required>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="margin-top: 10px;">Update Password</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function updateProfile(e) {
+    e.preventDefault();
+    const payload = {
+        full_name: document.getElementById('profFullName').value,
+        email: document.getElementById('profEmail').value
+    };
+
+    try {
+        const res = await fetch('/api/profile/update', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(data.message || 'Profile saved successfully.');
+        if (data.status === 'success') window.location.reload();
+    } catch (err) {
+        alert('Error updating profile.');
+    }
+}
+
+async function changePassword(e) {
+    e.preventDefault();
+    const payload = {
+        current_password: document.getElementById('currPw').value,
+        new_password: document.getElementById('newPw').value,
+        confirm_password: document.getElementById('confPw').value
+    };
+
+    try {
+        const res = await fetch('/api/profile/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        alert(data.message || 'Password update completed.');
+        if (data.status === 'success') {
+            document.getElementById('passwordForm').reset();
+        }
+    } catch (err) {
+        alert('Error changing password.');
+    }
+}
+</script>
+{% endblock %}

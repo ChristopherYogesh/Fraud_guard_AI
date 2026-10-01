@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Upload Video — Offline Analysis{% endblock %}
+{% block page_title %}Offline Video Ingestion & Forensic Audit{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Forensic CCTV Footage Ingestion</h3>
+        <p class="section-subtitle">Batch process recorded surveillance files with dual-path YOLOv8 + CNN frame inspection</p>
+    </div>
+</div>
+
+<div class="card-panel">
+    <div class="card-panel-header">
+        <span class="card-panel-title">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            Video Upload Terminal
+        </span>
+        <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Supports MP4, AVI, MOV, MKV (Up to 250 MB)</span>
+    </div>
+
+    <div class="card-panel-body">
+        <!-- Drag and Drop Zone -->
+        <div id="dropzone" class="dropzone-container" onclick="document.getElementById('videoFileInput').click()">
+            <input type="file" id="videoFileInput" accept="video/mp4,video/avi,video/quicktime,video/x-matroska" style="display: none;">
+            <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--accent-cyan)" style="margin-bottom: 12px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+            <h4 style="font-family: var(--font-display); font-size: 16px; font-weight: 700;">Drop video footage here, or click to browse</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">CCTV DVR clips, camera backups, or archived retail MP4 video</p>
+        </div>
+
+        <!-- Processing State & Progress Bar -->
+        <div id="processingCard" style="display: none; margin-top: 24px; padding: 20px; background-color: var(--bg-surface-alt); border-radius: var(--radius-md); border: 1px solid var(--border-color);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="font-family: var(--font-display); font-weight: 700; font-size: 14px;" id="procFileName">Analyzing Video...</div>
+                <div style="font-family: var(--font-mono); font-size: 12px; color: var(--accent-cyan);" id="procStatusText">Processing Neural Inference...</div>
+            </div>
+            <div style="width: 100%; height: 8px; background: var(--border-color); border-radius: 9999px; overflow: hidden;">
+                <div id="progressBar" style="width: 15%; height: 100%; background: linear-gradient(90deg, #0284c7, #0ea5e9); transition: width 0.3s ease; animation: indeterminate 2s infinite linear;"></div>
+            </div>
+            <p style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">Decomposing video into frames, running YOLOv8 object detector and CNN behavioral classifier...</p>
+        </div>
+
+        <!-- Ingestion Results Section -->
+        <div id="resultsCard" style="display: none; margin-top: 24px;">
+            <div class="metrics-grid" style="margin-bottom: 20px;">
+                <div class="metric-card card-cyan">
+                    <div class="metric-header"><span class="metric-label">Analyzed Frames</span></div>
+                    <div class="metric-value" id="resAnalyzed">0</div>
+                    <div class="metric-footnote" id="resDuration">0.0s total length</div>
+                </div>
+                <div class="metric-card card-crimson">
+                    <div class="metric-header"><span class="metric-label">Threats Detected</span></div>
+                    <div class="metric-value" id="resThreats" style="color: var(--accent-crimson);">0</div>
+                    <div class="metric-footnote">Incidents automatically logged</div>
+                </div>
+            </div>
+
+            <h4 style="font-family: var(--font-display); font-size: 15px; font-weight: 700; margin-bottom: 12px;">Flagged Video Timeline Incidents</h4>
+            <div id="incidentsTimeline" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 16px;">
+                <!-- Dynamically populated incident cards -->
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const dropzone = document.getElementById('dropzone');
+const fileInput = document.getElementById('videoFileInput');
+const procCard = document.getElementById('processingCard');
+const resultsCard = document.getElementById('resultsCard');
+
+['dragenter', 'dragover'].forEach(name => {
+    dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.add('drag-over'); });
+});
+['dragleave', 'drop'].forEach(name => {
+    dropzone.addEventListener(name, (e) => { e.preventDefault(); dropzone.classList.remove('drag-over'); });
+});
+
+dropzone.addEventListener('drop', (e) => {
+    if (e.dataTransfer.files.length > 0) {
+        handleUpload(e.dataTransfer.files[0]);
+    }
+});
+
+fileInput.addEventListener('change', (e) => {
+    if (e.target.files.length > 0) {
+        handleUpload(e.target.files[0]);
+    }
+});
+
+async function handleUpload(file) {
+    procCard.style.display = 'block';
+    resultsCard.style.display = 'none';
+    document.getElementById('procFileName').textContent = file.name;
+    document.getElementById('procStatusText').textContent = 'Uploading & Analyzing Frames...';
+
+    const formData = new FormData();
+    formData.append('video', file);
+
+    try {
+        const res = await fetch('/api/upload', {
+            method: 'POST',
+            body: formData
+        });
+
+        const data = await res.json();
+        procCard.style.display = 'none';
+
+        if (data.status === 'success') {
+            resultsCard.style.display = 'block';
+            document.getElementById('resAnalyzed').textContent = data.analyzed_frames;
+            document.getElementById('resDuration').textContent = `${data.duration_sec}s runtime (${data.total_frames} total frames)`;
+            document.getElementById('resThreats').textContent = data.threats_detected;
+
+            const timeline = document.getElementById('incidentsTimeline');
+            timeline.innerHTML = '';
+
+            if (data.incidents.length === 0) {
+                timeline.innerHTML = '<div style="grid-column: 1/-1; padding: 20px; text-align: center; color: var(--text-muted); background: var(--bg-surface-alt); border-radius: var(--radius-sm);">No shoplifting or suspicious anomalies identified in this video footage.</div>';
+            } else {
+                data.incidents.forEach(inc => {
+                    const card = document.createElement('div');
+                    card.style.cssText = 'border: 1px solid var(--border-color); border-radius: var(--radius-sm); overflow: hidden; background: var(--bg-surface);';
+                    card.innerHTML = `
+                        <img src="${inc.thumbnail}" style="width: 100%; height: 160px; object-fit: cover; border-bottom: 1px solid var(--border-color);">
+                        <div style="padding: 12px;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <strong style="font-size: 13px;">${inc.activity}</strong>
+                                <span class="badge-risk ${inc.risk_level.toLowerCase()}">${inc.risk_level}</span>
+                            </div>
+                            <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted); margin-top: 6px;">
+                                Timestamp: ${inc.timestamp_sec}s | Conf: ${inc.confidence}
+                            </div>
+                            <a href="/history" class="btn btn-secondary btn-sm" style="width: 100%; margin-top: 10px;">View in Incident Log</a>
+                        </div>
+                    `;
+                    timeline.appendChild(card);
+                });
+            }
+        } else {
+            alert('Upload processing failed: ' + data.message);
+        }
+    } catch (e) {
+        procCard.style.display = 'none';
+        alert('Network or processing error during video upload.');
+    }
+}
+</script>
+{% endblock %}

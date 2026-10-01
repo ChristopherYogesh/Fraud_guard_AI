@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics — Security Trends & Insights{% endblock %}
+{% block page_title %}Surveillance Intelligence & Analytics{% endblock %}
+
+{% block content %}
+<div class="section-header">
+    <div>
+        <h3 class="section-title">Threat Patterns & Actionable Insights</h3>
+        <p class="section-subtitle">Longitudinal analysis of theft occurrences, peak operational vulnerability hours, and risk distribution</p>
+    </div>
+</div>
+
+<!-- Key Metrics Row -->
+<div class="metrics-grid">
+    <div class="metric-card card-cyan">
+        <div class="metric-header"><span class="metric-label">Total Inferences</span></div>
+        <div class="metric-value">{{ total_detections }}</div>
+        <div class="metric-footnote">Surveillance events logged</div>
+    </div>
+    <div class="metric-card card-amber">
+        <div class="metric-header"><span class="metric-label">Today's Inferences</span></div>
+        <div class="metric-value">{{ detections_today }}</div>
+        <div class="metric-footnote">24-hour window activity</div>
+    </div>
+    <div class="metric-card card-crimson">
+        <div class="metric-header"><span class="metric-label">This Week's Activity</span></div>
+        <div class="metric-value">{{ detections_week }}</div>
+        <div class="metric-footnote">Trailing 7-day volume</div>
+    </div>
+    <div class="metric-card card-emerald">
+        <div class="metric-header"><span class="metric-label">Mean AI Confidence</span></div>
+        <div class="metric-value" style="color: var(--accent-emerald);">{{ avg_confidence }}%</div>
+        <div class="metric-footnote">CNN + YOLOv8 fused metric</div>
+    </div>
+</div>
+
+<!-- Four Charts Grid -->
+<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+    <!-- Chart 1: 14-Day Detection Trend -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline></svg>
+                14-Day Surveillance Incident Trend
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Daily Incident Volume</span>
+        </div>
+        <div class="card-panel-body">
+            <div style="height: 250px; position: relative;">
+                <canvas id="chart14d"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 2: Alert Type Breakdown -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><path d="M12 2a10 10 0 0 1 10 10"></path></svg>
+                Classification Breakdown by Incident Type
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Class Proportions</span>
+        </div>
+        <div class="card-panel-body">
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartTypes"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 3: Activity by Hour of the Day (0-23) -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                Vulnerability Distribution by Hour of the Day
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">00:00 — 23:00 UTC</span>
+        </div>
+        <div class="card-panel-body">
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartHours"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chart 4: Risk Distribution -->
+    <div class="card-panel">
+        <div class="card-panel-header">
+            <span class="card-panel-title">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+                Threat Risk Severity Spectrum
+            </span>
+            <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-muted);">Threat Spectrum</span>
+        </div>
+        <div class="card-panel-body">
+            <div style="height: 250px; position: relative;">
+                <canvas id="chartRisk"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // 1. 14-Day Trend Line Chart
+    new Chart(document.getElementById('chart14d').getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: {{ labels_14d | tojson }},
+            datasets: [{
+                label: 'Detections',
+                data: {{ data_14d | tojson }},
+                borderColor: '#0284c7',
+                backgroundColor: 'rgba(2, 132, 199, 0.1)',
+                fill: true,
+                tension: 0.35,
+                borderWidth: 2,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // 2. Alert Type Doughnut
+    new Chart(document.getElementById('chartTypes').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ type_labels | tojson }},
+            datasets: [{
+                data: {{ type_data | tojson }},
+                backgroundColor: ['#f43f5e', '#f59e0b', '#0ea5e9', '#10b981', '#8b5cf6'],
+                borderWidth: 2,
+                borderColor: 'var(--bg-surface)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '65%',
+            plugins: { legend: { position: 'bottom' } }
+        }
+    });
+
+    // 3. Hourly Bar Chart
+    new Chart(document.getElementById('chartHours').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ hours_labels | tojson }},
+            datasets: [{
+                label: 'Incidents per Hour',
+                data: {{ hours_data | tojson }},
+                backgroundColor: 'rgba(14, 165, 233, 0.65)',
+                hoverBackgroundColor: '#0ea5e9',
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
+                x: { grid: { display: false }, ticks: { maxTicksLimit: 12 } }
+            }
+        }
+    });
+
+    // 4. Risk Level Bar Chart
+    new Chart(document.getElementById('chartRisk').getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: {{ risk_labels | tojson }},
+            datasets: [{
+                data: {{ risk_data | tojson }},
+                backgroundColor: ['#10b981', '#0ea5e9', '#f59e0b', '#f43f5e'],
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(148, 163, 184, 0.15)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+});
+</script>
+{% endblock %}

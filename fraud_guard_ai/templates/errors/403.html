@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Access Denied — 403{% endblock %}
+{% block page_title %}Access Prohibited (403){% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 20px;">
+    <div style="font-family: var(--font-mono); font-size: 48px; font-weight: 700; color: var(--accent-crimson); margin-bottom: 8px;">403</div>
+    <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700;">Security Clearance Level Insufficient</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin: 10px 0 24px; max-width: 450px; margin-left: auto; margin-right: auto;">
+        This surveillance module requires elevated Administrator privileges. Your current role is restricted from modifying these parameters.
+    </p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Return to Command Dashboard</a>
+</div>
+{% endblock %}

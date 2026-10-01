@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Access — FRAUD GUARD AI (EyeMatrix AI)</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/blueprint.css') }}">
+    <style>
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .login-card {
+            background-color: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            width: 100%;
+            max-width: 440px;
+            box-shadow: var(--shadow-lg);
+            overflow: hidden;
+        }
+        .login-header {
+            padding: 36px 32px 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            background-color: var(--bg-surface-alt);
+        }
+        .login-brand-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 16px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, #0284c7, #2563eb);
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: var(--font-display);
+            font-size: 20px;
+            font-weight: 700;
+            box-shadow: 0 4px 12px rgba(2, 132, 199, 0.4);
+        }
+        .login-body {
+            padding: 32px;
+        }
+        .demo-credentials-box {
+            margin-top: 24px;
+            padding: 14px 16px;
+            background-color: var(--bg-surface-alt);
+            border: 1px dashed var(--border-dashed);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+        }
+        .demo-row {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 4px;
+            font-family: var(--font-mono);
+        }
+        .demo-row span:last-child {
+            font-weight: 600;
+            color: var(--accent-cyan);
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-card">
+        <div class="login-header">
+            <div class="login-brand-icon">FG</div>
+            <h2 style="font-family: var(--font-display); font-size: 20px; font-weight: 700; color: var(--text-primary);">FRAUD GUARD AI</h2>
+            <p style="font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; font-family: var(--font-mono); margin-top: 4px;">Surveillance & Threat Detection System</p>
+        </div>
+
+        <div class="login-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    {% for category, message in messages %}
+                        <div class="alert-box alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                {% endif %}
+            {% endwith %}
+
+            <form method="POST" action="{{ url_for('auth.login') }}">
+                <div class="form-group">
+                    <label class="form-label" for="username">Operator / Account ID</label>
+                    <input type="text" id="username" name="username" class="form-input" placeholder="admin or guard" required autofocus>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Authentication Key / Password</label>
+                    <input type="password" id="password" name="password" class="form-input" placeholder="••••••••••••" required>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px;">
+                    <label style="display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text-secondary); cursor: pointer;">
+                        <input type="checkbox" name="remember" value="1" style="accent-color: var(--accent-cyan);">
+                        <span>Keep Session Active</span>
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px; font-size: 14px;">
+                    Authenticate & Enter Console
+                </button>
+            </form>
+
+            <div class="demo-credentials-box">
+                <div style="font-family: var(--font-mono); font-size: 10px; text-transform: uppercase; color: var(--text-muted); font-weight: 700; margin-bottom: 6px;">
+                    Default Operator Credentials:
+                </div>
+                <div class="demo-row">
+                    <span>Administrator:</span>
+                    <span onclick="fillCredentials('admin', 'admin123')">admin / admin123</span>
+                </div>
+                <div class="demo-row">
+                    <span>Security Guard:</span>
+                    <span onclick="fillCredentials('guard', 'guard123')">guard / guard123</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function fillCredentials(user, pass) {
+            document.getElementById('username').value = user;
+            document.getElementById('password').value = pass;
+        }
+    </script>
+</body>
+</html>

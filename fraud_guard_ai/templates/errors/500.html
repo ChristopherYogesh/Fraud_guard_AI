@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+
+{% block title %}Engine Exception — 500{% endblock %}
+{% block page_title %}Internal Node Exception (500){% endblock %}
+
+{% block content %}
+<div style="text-align: center; padding: 60px 20px;">
+    <div style="font-family: var(--font-mono); font-size: 48px; font-weight: 700; color: var(--accent-amber); margin-bottom: 8px;">500</div>
+    <h3 style="font-family: var(--font-display); font-size: 20px; font-weight: 700;">AI Engine Processing Fault</h3>
+    <p style="font-size: 13px; color: var(--text-muted); margin: 10px 0 24px; max-width: 450px; margin-left: auto; margin-right: auto;">
+        An unexpected internal pipeline fault occurred. The core security daemon has isolated the fault to preserve audit integrity.
+    </p>
+    <a href="{{ url_for('dashboard.index') }}" class="btn btn-primary">Return to Command Dashboard</a>
+</div>
+{% endblock %}
